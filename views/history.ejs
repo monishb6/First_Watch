@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brief History — First Watch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-left">
+      <h1 class="logo"><a href="/">First Watch</a></h1>
+    </div>
+    <nav class="nav">
+      <a href="/watchlist">Watchlist</a>
+      <a href="/ai/history" class="active">Brief History</a>
+    </nav>
+  </header>
+
+  <main class="page-content">
+    <h2 class="section-title">AI Brief History</h2>
+
+    <!-- TODO: loop through briefs array passed from routes/ai.js -->
+    <% if (briefs.length === 0) { %>
+      <p class="placeholder">No briefs generated yet. Go to the dashboard and click "Generate New Brief".</p>
+    <% } else { %>
+      <% briefs.forEach(brief => { %>
+        <div class="brief-card">
+          <p class="brief-date"><%= new Date(brief.generatedAt).toLocaleString() %></p>
+          <p class="brief-text"><%= brief.content %></p>
+        </div>
+      <% }) %>
+    <% } %>
+  </main>
+
+</body>
+</html>

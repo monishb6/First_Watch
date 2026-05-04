@@ -1,0 +1,17 @@
+{
+  "name": "first-watch",
+  "version": "1.0.0",
+  "description": "Financial news dashboard with AI-powered sentiment scoring and grounded Q&A",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "mongoose": "^8.4.0",
+    "node-fetch": "^2.6.9"
+  }
+}

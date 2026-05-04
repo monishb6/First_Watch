@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>First Watch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <h1 class="logo">First Watch</h1>
+      <span class="tagline">Markets. Sentiment. Insight.</span>
+    </div>
+    <nav class="nav">
+      <a href="/watchlist">Watchlist</a>
+      <a href="/ai/history">Brief History</a>
+    </nav>
+  </header>
+
+  <!-- MAIN DASHBOARD -->
+  <main class="dashboard">
+
+    <!-- LEFT COLUMN: News Feed -->
+    <section class="news-column">
+      <h2 class="section-title">Market News</h2>
+      <!-- TODO: news cards are rendered here by JavaScript after fetching /api/news -->
+      <!-- Each card should show: sentiment badge, headline, source, time, link -->
+      <div id="news-feed">
+        <p class="loading">Loading headlines...</p>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN -->
+    <aside class="right-column">
+
+      <!-- PRICE TABLE -->
+      <section class="panel">
+        <h2 class="section-title">Prices</h2>
+        <!-- TODO: price rows rendered here by JavaScript after fetching /api/prices -->
+        <div id="price-table">
+          <p class="loading">Loading prices...</p>
+        </div>
+      </section>
+
+      <!-- ASK FIRST WATCH -->
+      <section class="panel">
+        <h2 class="section-title">Ask First Watch</h2>
+        <form id="ask-form">
+          <input
+            type="text"
+            id="ask-input"
+            name="question"
+            placeholder="Why is gold dropping today?"
+            autocomplete="off"
+          />
+          <button type="submit">Ask</button>
+        </form>
+        <!-- TODO: Claude's answer appears here without page reload -->
+        <div id="ask-answer"></div>
+      </section>
+
+      <!-- AI MARKET BRIEF -->
+      <section class="panel">
+        <h2 class="section-title">AI Market Brief</h2>
+        <!-- TODO: show the most recent AIBrief from MongoDB here -->
+        <!-- Pass it from server.js as a template variable -->
+        <div id="brief-content">
+          <p class="placeholder">No brief generated yet.</p>
+        </div>
+        <form action="/ai/generate" method="POST">
+          <button type="submit" class="generate-btn">Generate New Brief</button>
+        </form>
+      </section>
+
+    </aside>
+  </main>
+
+  <script>
+    // TODO: fetch prices from /api/prices and render into #price-table
+    // Auto-refresh every 60 seconds
+
+    // TODO: fetch news from /api/news and render cards into #news-feed
+    // Each card: sentiment badge (class based on sentiment value), headline, source, time, link
+
+    // TODO: handle #ask-form submit
+    // Use fetch() POST to /ai/ask with { question }
+    // Render the returned answer into #ask-answer
+    // No page reload
+  </script>
+
+</body>
+</html>

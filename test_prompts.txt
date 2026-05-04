@@ -1,0 +1,75 @@
+MedBrief Test Prompts
+=====================
+
+Each scenario below has an opening message followed by follow-up responses.
+Paste the opening message first, then respond to the AI's questions with the follow-ups.
+
+
+--- SCENARIO 1: Headache with red flags ---
+
+Opening: I've had a really bad headache for the past 3 days, mostly behind my eyes. It gets worse when I look at screens.
+
+Follow-ups:
+- I'd say it's about a 7 out of 10, sometimes an 8 when it really flares up
+- I'd say it's about a 7 out of 10, sometimes an 8 when it really flares up
+- Screens definitely make it worse. Lying down in a dark room helps a bit. Coffee seems to take the edge off temporarily
+- Yeah actually my neck has been really stiff too, and I've been a little sensitive to bright lights
+- I've been taking ibuprofen but it only helps for like an hour. No other medications. No allergies
+- I get occasional headaches but nothing like this. No major medical history. I did start a new desk job about 2 weeks ago
+- Not really, I just want to make sure it's nothing serious
+
+
+--- SCENARIO 2: Stomach issues ---
+
+Opening: My stomach has been hurting after meals for about a week, and I've been feeling nauseous in the mornings.
+
+Follow-ups:
+- It's like a burning feeling right in the upper part of my stomach, maybe a 5 or 6 out of 10
+- It usually starts about 30 minutes after eating and lasts a couple hours
+- Spicy food and coffee make it way worse. Antacids help a little
+- I've also had some acid reflux at night that wakes me up, and I've been burping a lot more than usual
+- I take ibuprofen pretty regularly for back pain, maybe 3-4 times a week. No allergies
+- No history of stomach problems. I've been pretty stressed at work lately though
+- That's about it, I just want to get it figured out
+
+
+--- SCENARIO 3: Chest tightness with medication history ---
+
+Opening: I've been having chest tightness and shortness of breath when I climb stairs or walk fast. It started about 5 days ago.
+
+Follow-ups:
+- The tightness is maybe a 6 out of 10, the breathing difficulty is more like a 4
+- It only happens when I'm physically active, goes away after I rest for a few minutes
+- Exercise and walking uphill trigger it. Sitting down and resting makes it stop
+- I've also noticed my ankles are a bit swollen in the evenings, and I get tired more easily than usual
+- I take lisinopril 10mg for blood pressure and metformin for type 2 diabetes. I'm allergic to penicillin
+- I was diagnosed with high blood pressure 3 years ago and diabetes about a year ago. Family history of heart disease — my dad had a heart attack at 55
+- No I haven't tried anything specific for this, I just figured I should get it checked out
+
+
+--- SCENARIO 4: Anxiety and sleep issues ---
+
+Opening: I just haven't been feeling right lately. I'm tired all the time, can't sleep, and I feel anxious for no reason.
+
+Follow-ups:
+- The fatigue is probably a 7 out of 10, the anxiety maybe a 5. It's been going on for about 3 weeks
+- The tiredness is constant. The anxiety comes in waves, usually worse in the morning
+- Caffeine makes the anxiety worse. Nothing really helps the fatigue. Exercise helps my mood a little
+- I've been having trouble falling asleep — takes me over an hour most nights. I also get headaches and my appetite is way down, lost about 5 pounds
+- I take sertraline 50mg for depression, started it about 6 months ago. No allergies
+- I've had depression on and off for a few years. Nothing else major. No recent life changes really
+- I guess I'm wondering if my medication needs adjusting or if something else is going on
+
+
+--- SCENARIO 5: Joint pain ---
+
+Opening: Both my knees have been really painful and stiff, especially in the morning. It's been getting worse over the past 2 weeks.
+
+Follow-ups:
+- Pain is about a 6 out of 10, stiffness is worse in the morning and takes about 30 minutes to loosen up
+- The stiffness is worst first thing in the morning, pain gets worse throughout the day especially if I'm on my feet a lot
+- Standing for long periods and going up stairs make it worse. Heat packs and gentle stretching help
+- My right knee has been slightly swollen, and I've noticed some cracking sounds when I bend them. My hands have been a bit stiff too
+- I take over-the-counter glucosamine and occasionally Tylenol. No prescription meds. No allergies
+- No previous joint problems. I'm 45 and I used to run a lot but stopped about a year ago. My mom has rheumatoid arthritis
+- That covers it, I just want to know what's going on and if I should be worried
