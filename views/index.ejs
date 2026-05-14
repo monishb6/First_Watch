@@ -6,92 +6,223 @@
   <title>First Watch</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css" />
 </head>
-<body>
+<body class="mono-numbers">
 
-  <!-- HEADER -->
-  <header class="header">
-    <div class="header-left">
-      <h1 class="logo">First Watch</h1>
-      <span class="tagline">Markets. Sentiment. Insight.</span>
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div class="header-left-row">
+      <span class="wordmark">First<span class="wordmark-dot">.</span>Watch</span>
+      <span class="page-meta" id="page-date"></span>
     </div>
-    <nav class="nav">
+    <nav class="header-nav">
       <a href="/watchlist">Watchlist</a>
-      <a href="/ai/history">Brief History</a>
+      <a href="/ai/history">History</a>
     </nav>
-  </header>
+  </div>
 
-  <!-- MAIN DASHBOARD -->
-  <main class="dashboard">
+  <!-- MAIN LAYOUT -->
+  <div class="layout" id="mainLayout">
 
-    <!-- LEFT COLUMN: News Feed -->
-    <section class="news-column">
-      <h2 class="section-title">Market News</h2>
-      <!-- TODO: news cards are rendered here by JavaScript after fetching /api/news -->
-      <!-- Each card should show: sentiment badge, headline, source, time, link -->
-      <div id="news-feed">
-        <p class="loading">Loading headlines...</p>
-      </div>
-    </section>
+    <!-- LEFT: Q&A + NEWS -->
+    <div class="col-left">
 
-    <!-- RIGHT COLUMN -->
-    <aside class="right-column">
-
-      <!-- PRICE TABLE -->
-      <section class="panel">
-        <h2 class="section-title">Prices</h2>
-        <!-- TODO: price rows rendered here by JavaScript after fetching /api/prices -->
-        <div id="price-table">
-          <p class="loading">Loading prices...</p>
-        </div>
-      </section>
-
-      <!-- ASK FIRST WATCH -->
-      <section class="panel">
-        <h2 class="section-title">Ask First Watch</h2>
+      <!-- Ask First Watch -->
+      <div class="qa-section">
+        <div class="section-label">Ask First Watch</div>
         <form id="ask-form">
-          <input
-            type="text"
-            id="ask-input"
-            name="question"
-            placeholder="Why is gold dropping today?"
-            autocomplete="off"
-          />
-          <button type="submit">Ask</button>
+          <div class="qa-input-row">
+            <input
+              class="qa-input"
+              id="ask-input"
+              type="text"
+              name="question"
+              placeholder="Ask about current market conditions..."
+              autocomplete="off"
+            />
+            <button class="qa-submit" type="submit">Ask</button>
+          </div>
         </form>
-        <!-- TODO: Claude's answer appears here without page reload -->
-        <div id="ask-answer"></div>
-      </section>
-
-      <!-- AI MARKET BRIEF -->
-      <section class="panel">
-        <h2 class="section-title">AI Market Brief</h2>
-        <!-- TODO: show the most recent AIBrief from MongoDB here -->
-        <!-- Pass it from server.js as a template variable -->
-        <div id="brief-content">
-          <p class="placeholder">No brief generated yet.</p>
+        <div class="qa-response" id="qa-response" style="display:none">
+          <p class="qa-answer" id="qa-answer"></p>
+          <div class="qa-timestamp" id="qa-timestamp"></div>
         </div>
-        <form action="/ai/generate" method="POST">
-          <button type="submit" class="generate-btn">Generate New Brief</button>
-        </form>
-      </section>
+      </div>
 
-    </aside>
-  </main>
+      <!-- News Feed -->
+      <div>
+        <div class="section-label">Market News</div>
+        <div class="news-list" id="news-list">
+          <p class="loading-msg">Loading headlines&hellip;</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: PRICES + BRIEF -->
+    <div class="col-right">
+
+      <!-- Price Table -->
+      <div>
+        <div class="section-label">Watchlist</div>
+        <div class="price-table" id="price-table">
+          <p class="loading-msg">Loading prices&hellip;</p>
+        </div>
+      </div>
+
+      <!-- Market Brief Card -->
+      <div>
+        <div class="section-label">Market Brief</div>
+        <div class="brief-card">
+          <div class="brief-card-text" id="brief-content">
+            <% if (latestBrief) { %>
+              <% var paras = latestBrief.content.split('\n\n').filter(function(p) { return p.trim(); }); %>
+              <% if (paras.length > 1) { %>
+                <% paras.forEach(function(para) { %>
+                  <p><%= para.trim() %></p>
+                <% }); %>
+              <% } else { %>
+                <% latestBrief.content.split('\n').filter(function(p) { return p.trim(); }).forEach(function(para) { %>
+                  <p><%= para.trim() %></p>
+                <% }); %>
+              <% } %>
+            <% } else { %>
+              <p class="empty-msg">No brief generated yet.</p>
+            <% } %>
+          </div>
+          <div class="brief-card-footer">
+            <span class="brief-generated">
+              <% if (latestBrief) { %>
+                Generated <%= new Date(latestBrief.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %>
+              <% } %>
+            </span>
+            <form action="/ai/generate" method="POST" style="margin:0">
+              <button class="brief-regen" type="submit">&#x21BB; Regenerate</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
 
   <script>
-    // TODO: fetch prices from /api/prices and render into #price-table
-    // Auto-refresh every 60 seconds
+    // Set current date in header
+    const now = new Date();
+    document.getElementById('page-date').textContent =
+      now.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }).toUpperCase() +
+      ' · ' +
+      now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' EST';
 
-    // TODO: fetch news from /api/news and render cards into #news-feed
-    // Each card: sentiment badge (class based on sentiment value), headline, source, time, link
+    // ── PRICES ──
+    function formatPrice(p) {
+      if (!p || p === 0) return '—';
+      return '$' + p.toFixed(2);
+    }
 
-    // TODO: handle #ask-form submit
-    // Use fetch() POST to /ai/ask with { question }
-    // Render the returned answer into #ask-answer
-    // No page reload
+    function renderPrices(prices) {
+      const container = document.getElementById('price-table');
+      if (!prices || prices.length === 0) {
+        container.innerHTML = '<p class="empty-msg">No tickers saved. <a href="/watchlist">Add some.</a></p>';
+        return;
+      }
+      container.innerHTML = prices.map(function(p) {
+        const up = p.percentChange >= 0;
+        const changeClass = up ? 'up' : 'down';
+        const sign = up ? '+' : '';
+        const arrow = up ? '&#x2191;' : '&#x2193;';
+        return '<div class="price-row">' +
+          '<div><div class="price-ticker">' + p.symbol + '</div></div>' +
+          '<div class="price-vals">' +
+            '<div class="price-current">' + formatPrice(p.price) + '</div>' +
+            '<div class="price-change ' + changeClass + '">' + sign + (p.percentChange ? p.percentChange.toFixed(2) : '0.00') + '% ' + arrow + '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function loadPrices() {
+      fetch('/api/prices')
+        .then(function(res) { return res.json(); })
+        .then(function(prices) { renderPrices(prices); })
+        .catch(function() {
+          document.getElementById('price-table').innerHTML = '<p class="loading-msg">Failed to load prices.</p>';
+        });
+    }
+
+    // ── NEWS ──
+    function timeAgo(unixTs) {
+      const diff = Math.floor(Date.now() / 1000 - unixTs);
+      if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+      if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+      return Math.floor(diff / 86400) + 'd ago';
+    }
+
+    function loadNews() {
+      const container = document.getElementById('news-list');
+      fetch('/api/news')
+        .then(function(res) { return res.json(); })
+        .then(function(articles) {
+          if (!articles || articles.length === 0) {
+            container.innerHTML = '<p class="loading-msg">No headlines available.</p>';
+            return;
+          }
+          container.innerHTML = articles.map(function(a) {
+            const badgeClass = 'badge-' + (a.sentiment || 'neutral');
+            return '<div class="news-item">' +
+              '<div>' +
+                '<a href="' + a.url + '" target="_blank" rel="noopener" class="news-headline">' + a.headline + '</a>' +
+                '<div class="news-meta">' +
+                  '<span class="news-source">' + a.source + '</span>' +
+                  '<span class="news-time">' + timeAgo(a.datetime) + '</span>' +
+                '</div>' +
+                '<div class="news-reason">' + (a.reason || '') + '</div>' +
+              '</div>' +
+              '<div class="badge-col">' +
+                '<span class="badge ' + badgeClass + '">' + (a.sentiment || 'neutral') + '</span>' +
+                '<span class="confidence">' + (a.score !== undefined ? a.score.toFixed(2) : '') + '</span>' +
+              '</div>' +
+            '</div>';
+          }).join('');
+        })
+        .catch(function() {
+          container.innerHTML = '<p class="loading-msg">Failed to load headlines.</p>';
+        });
+    }
+
+    loadPrices();
+    loadNews();
+    setInterval(loadPrices, 60000);
+
+    // ── ASK FORM ──
+    document.getElementById('ask-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const question = document.getElementById('ask-input').value.trim();
+      if (!question) return;
+
+      const responseDiv = document.getElementById('qa-response');
+      const answerEl = document.getElementById('qa-answer');
+      const tsEl = document.getElementById('qa-timestamp');
+      responseDiv.style.display = 'block';
+      answerEl.textContent = 'Thinking…';
+      tsEl.textContent = '';
+
+      fetch('/ai/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: question })
+      })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          answerEl.textContent = data.answer;
+          tsEl.textContent = 'Answered · ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        })
+        .catch(function() {
+          answerEl.textContent = 'Error. Please try again.';
+        });
+    });
   </script>
 
 </body>

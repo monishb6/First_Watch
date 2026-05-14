@@ -2,60 +2,119 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const fetch = require("node-fetch");
+const { getGroq } = require("./lib/groqClient");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.set("view engine", "ejs");
 app.use(express.static("public"));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Routes
 const watchlistRouter = require("./routes/watchlist");
 const aiRouter = require("./routes/ai");
 app.use("/watchlist", watchlistRouter);
 app.use("/ai", aiRouter);
 
-// Models
 const Ticker = require("./models/Ticker");
 const AIBrief = require("./models/AIBrief");
 
-// TODO: GET / — render dashboard
-// Fetch saved tickers from MongoDB, pass to index.ejs
-// The view will use fetch() on the client side to call /api/prices and /api/news
 app.get("/", async (req, res) => {
-  // TODO: implement
-  res.render("index");
+  try {
+    const latestBrief = await AIBrief.findOne().sort({ generatedAt: -1 });
+    res.render("index", { latestBrief });
+  } catch (err) {
+    console.error(err);
+    res.render("index", { latestBrief: null });
+  }
 });
 
-// TODO: GET /api/prices
-// Fetch prices from Finnhub for all saved tickers
-// Return JSON: [{ symbol, price, change, percentChange }]
 app.get("/api/prices", async (req, res) => {
-  // TODO: implement
-  // 1. Get all tickers from MongoDB
-  // 2. For each ticker, fetch from Finnhub /quote endpoint
-  // 3. Return array of price objects
-  res.json([]);
+  try {
+    const tickers = await Ticker.find().sort({ addedAt: 1 });
+    const prices = await Promise.all(
+      tickers.map(async (ticker) => {
+        const url = `https://finnhub.io/api/v1/quote?symbol=${ticker.symbol}&token=${process.env.FINNHUB_API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        return {
+          symbol: ticker.symbol,
+          price: data.c,
+          change: data.d,
+          percentChange: data.dp,
+        };
+      })
+    );
+    res.json(prices);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch prices" });
+  }
 });
 
-// TODO: GET /api/news
-// Fetch headlines from Finnhub, send to Claude for sentiment scoring, return enriched JSON
-// Return JSON: [{ headline, source, datetime, url, sentiment, score, reason }]
 app.get("/api/news", async (req, res) => {
-  // TODO: implement
-  // 1. Fetch from Finnhub /news?category=general
-  // 2. Take top 10 headlines
-  // 3. Send all to Claude with sentiment prompt (see CLAUDE.md for exact prompt)
-  // 4. Parse Claude's JSON array response
-  // 5. Merge sentiment data with headline objects
-  // 6. Return merged array
-  res.json([]);
+  try {
+    const url = `https://finnhub.io/api/v1/news?category=general&token=${process.env.FINNHUB_API_KEY}`;
+    const response = await fetch(url);
+    const articles = await response.json();
+    const list = Array.isArray(articles) ? articles : [];
+    const top10 = list.slice(0, 10);
+
+    if (top10.length === 0) {
+      return res.json([]);
+    }
+
+    const groq = getGroq();
+    if (!groq) {
+      return res.status(503).json({ error: "GROQ_API_KEY is not configured." });
+    }
+
+    const headlineList = top10.map((a, i) => `${i + 1}. ${a.headline}`).join("\n");
+
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      max_tokens: 1024,
+      messages: [
+        {
+          role: "user",
+          content: `You are a financial sentiment analyst. For each headline below, return a JSON array with objects containing: "sentiment" (exactly one of: bullish, neutral, bearish), "score" (float from -1.0 to 1.0), and "reason" (one short sentence).
+
+Return ONLY a valid JSON array with exactly ${top10.length} objects. No markdown, no extra text.
+
+Headlines:
+${headlineList}`,
+        },
+      ],
+    });
+
+    const rawText = (completion.choices[0].message.content || "").trim();
+    const jsonStr = rawText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+
+    let sentiments;
+    try {
+      sentiments = JSON.parse(jsonStr);
+    } catch (parseErr) {
+      sentiments = top10.map(() => ({ sentiment: "neutral", score: 0, reason: "" }));
+    }
+
+    const enriched = top10.map((article, i) => ({
+      headline: article.headline,
+      source: article.source,
+      datetime: article.datetime,
+      url: article.url,
+      sentiment: sentiments[i] ? sentiments[i].sentiment : "neutral",
+      score: sentiments[i] ? sentiments[i].score : 0,
+      reason: sentiments[i] ? sentiments[i].reason : "",
+    }));
+
+    res.json(enriched);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch news" });
+  }
 });
 
-// Connect to MongoDB then start server
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => {
