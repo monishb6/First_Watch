@@ -135,7 +135,8 @@ function httpPostJson(url, json) {
     console.log("PASS: GET /api/news returns 503 without GROQ_API_KEY (expected)");
   } else if (news.status === 200) {
     try {
-      const arr = JSON.parse(news.body);
+      const body = JSON.parse(news.body);
+      const arr = Array.isArray(body) ? body : body.items || [];
       if (Array.isArray(arr) && arr.length > 0 && arr[0].sentiment) {
         console.log("PASS: GET /api/news (200, enriched headlines)");
         newsAiOk = true;
@@ -147,6 +148,19 @@ function httpPostJson(url, json) {
     }
   } else {
     console.log(`NOTE: GET /api/news status ${news.status} — ${news.body.slice(0, 200)}`);
+  }
+
+  const ms = await httpGet(`${base}/api/market-status`);
+  if (ms.status === 200) {
+    try {
+      const m = JSON.parse(ms.body);
+      if (m.label) console.log("PASS: GET /api/market-status (200)");
+      else console.log(`NOTE: GET /api/market-status shape: ${ms.body.slice(0, 120)}`);
+    } catch (_) {
+      console.log("NOTE: GET /api/market-status not JSON");
+    }
+  } else {
+    console.log(`NOTE: GET /api/market-status ${ms.status}`);
   }
 
   if (newsAiOk) {

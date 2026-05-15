@@ -1,7 +1,6 @@
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
-const fetch = require("node-fetch");
 const { getGroq } = require("./lib/groqClient");
 
 const app = express();
@@ -17,8 +16,23 @@ const aiRouter = require("./routes/ai");
 app.use("/watchlist", watchlistRouter);
 app.use("/ai", aiRouter);
 
-const Ticker = require("./models/Ticker");
 const AIBrief = require("./models/AIBrief");
+const { getMarketStatusUS, getWatchlistQuotesEnriched, resolveHeadlineArticles, validateTicker } = require("./lib/finnhubData");
+
+app.get("/onboarding", (req, res) => {
+  res.render("onboarding");
+});
+
+app.get("/api/validate-ticker", async (req, res) => {
+  const symbol = (req.query.symbol || "").toString().trim().toUpperCase();
+  if (!symbol) return res.json({ valid: false });
+  try {
+    const result = await validateTicker(symbol);
+    res.json(result);
+  } catch {
+    res.json({ valid: false });
+  }
+});
 
 app.get("/", async (req, res) => {
   try {
@@ -32,20 +46,7 @@ app.get("/", async (req, res) => {
 
 app.get("/api/prices", async (req, res) => {
   try {
-    const tickers = await Ticker.find().sort({ addedAt: 1 });
-    const prices = await Promise.all(
-      tickers.map(async (ticker) => {
-        const url = `https://finnhub.io/api/v1/quote?symbol=${ticker.symbol}&token=${process.env.FINNHUB_API_KEY}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        return {
-          symbol: ticker.symbol,
-          price: data.c,
-          change: data.d,
-          percentChange: data.dp,
-        };
-      })
-    );
+    const prices = await getWatchlistQuotesEnriched();
     res.json(prices);
   } catch (err) {
     console.error(err);
@@ -53,24 +54,32 @@ app.get("/api/prices", async (req, res) => {
   }
 });
 
+app.get("/api/market-status", async (req, res) => {
+  try {
+    const status = await getMarketStatusUS();
+    res.json(status);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ label: "Unavailable", session: null, holiday: null, isRegularOpen: false });
+  }
+});
+
 app.get("/api/news", async (req, res) => {
   try {
-    const url = `https://finnhub.io/api/v1/news?category=general&token=${process.env.FINNHUB_API_KEY}`;
-    const response = await fetch(url);
-    const articles = await response.json();
+    const { feed, articles } = await resolveHeadlineArticles();
     const list = Array.isArray(articles) ? articles : [];
-    const top10 = list.slice(0, 10);
+    const top = list.slice(0, 25);
 
-    if (top10.length === 0) {
-      return res.json([]);
+    if (top.length === 0) {
+      return res.json({ feed, items: [] });
     }
 
     const groq = getGroq();
     if (!groq) {
-      return res.status(503).json({ error: "GROQ_API_KEY is not configured." });
+      return res.status(503).json({ error: "GROQ_API_KEY is not configured.", feed, items: [] });
     }
 
-    const headlineList = top10.map((a, i) => `${i + 1}. ${a.headline}`).join("\n");
+    const headlineList = top.map((a, i) => `${i + 1}. ${a.headline}`).join("\n");
 
     const completion = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
@@ -80,7 +89,7 @@ app.get("/api/news", async (req, res) => {
           role: "user",
           content: `You are a financial sentiment analyst. For each headline below, return a JSON array with objects containing: "sentiment" (exactly one of: bullish, neutral, bearish), "score" (float from -1.0 to 1.0), and "reason" (one short sentence).
 
-Return ONLY a valid JSON array with exactly ${top10.length} objects. No markdown, no extra text.
+Return ONLY a valid JSON array with exactly ${top.length} objects. No markdown, no extra text.
 
 Headlines:
 ${headlineList}`,
@@ -95,10 +104,10 @@ ${headlineList}`,
     try {
       sentiments = JSON.parse(jsonStr);
     } catch (parseErr) {
-      sentiments = top10.map(() => ({ sentiment: "neutral", score: 0, reason: "" }));
+      sentiments = top.map(() => ({ sentiment: "neutral", score: 0, reason: "" }));
     }
 
-    const enriched = top10.map((article, i) => ({
+    const enriched = top.map((article, i) => ({
       headline: article.headline,
       source: article.source,
       datetime: article.datetime,
@@ -108,7 +117,7 @@ ${headlineList}`,
       reason: sentiments[i] ? sentiments[i].reason : "",
     }));
 
-    res.json(enriched);
+    res.json({ feed, items: enriched });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch news" });

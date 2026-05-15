@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test:smoke": "node scripts/smoke.js"
+    "test:smoke": "node scripts/smoke.js",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
@@ -16,6 +17,7 @@
     "node-fetch": "^2.6.9"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "mongodb-memory-server": "^11.1.0"
   }
 }

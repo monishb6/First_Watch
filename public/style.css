@@ -48,16 +48,19 @@ a {
 
 /* ── PAGE HEADER ── */
 .page-header {
-  padding: 20px 28px 0;
+  padding: 20px 28px;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .header-left-row {
   display: flex;
   align-items: baseline;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .wordmark {
@@ -78,6 +81,23 @@ a {
   font-size: 11px;
   color: var(--text-3);
   letter-spacing: 0.05em;
+}
+
+.market-status {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.market-status-open {
+  color: var(--green);
+  border-color: rgba(34, 197, 94, 0.35);
 }
 
 .header-nav {
@@ -101,7 +121,7 @@ a {
   grid-template-columns: 1fr 340px;
   gap: 0;
   padding: 20px 28px 28px;
-  align-items: start;
+  align-items: stretch;
 }
 
 /* ── SECTION LABELS ── */
@@ -134,10 +154,20 @@ a {
 }
 
 /* ── NEWS FEED ── */
+.news-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .news-list {
   display: flex;
   flex-direction: column;
   gap: 0;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .news-item {
@@ -187,21 +217,6 @@ a {
   color: var(--text-3);
 }
 
-.news-reason {
-  font-size: 11px;
-  color: var(--text-3);
-  margin-top: 4px;
-  font-style: italic;
-  max-height: 40px;
-  overflow: hidden;
-  transition: max-height 0.15s, opacity 0.15s;
-}
-
-.news-reason.hidden {
-  max-height: 0;
-  opacity: 0;
-  margin-top: 0;
-}
 
 /* ── BADGES ── */
 .badge {
@@ -275,17 +290,22 @@ body.badge-dot .badge-neutral::before { background: var(--neutral-color); }
   gap: 6px;
 }
 
-.confidence {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--text-3);
-  transition: opacity 0.15s;
+.conf-bar {
+  width: 52px;
+  height: 3px;
+  background: var(--surface-3);
+  border-radius: 2px;
+  overflow: hidden;
 }
 
-.confidence.hidden {
-  opacity: 0;
-  pointer-events: none;
+.conf-bar-fill {
+  height: 100%;
+  border-radius: 2px;
 }
+
+.conf-bar-bullish { background: var(--green); }
+.conf-bar-bearish { background: var(--red); }
+.conf-bar-neutral { background: var(--neutral-color); }
 
 /* ── Q&A SECTION ── */
 .qa-section {
@@ -377,7 +397,7 @@ body.badge-dot .badge-neutral::before { background: var(--neutral-color); }
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
-  align-items: center;
+  align-items: start;
   padding: 10px 0;
   border-bottom: 1px solid var(--border-subtle);
 }
@@ -392,6 +412,32 @@ body.badge-dot .badge-neutral::before { background: var(--neutral-color); }
   font-weight: 500;
   letter-spacing: 0.08em;
   color: var(--text);
+}
+
+.price-col-main {
+  min-width: 0;
+}
+
+.price-meta {
+  font-size: 12px;
+  color: var(--text);
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
+.price-meta-sub {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
+.price-earnings {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  margin-top: 6px;
 }
 
 .price-vals {
@@ -473,6 +519,14 @@ body.mono-numbers .price-change {
   padding: 0 28px;
 }
 
+.page-content--full {
+  max-width: none;
+  width: 100%;
+  margin: 32px 0;
+  padding: 0 28px;
+  box-sizing: border-box;
+}
+
 .add-form {
   display: flex;
   gap: 8px;
@@ -499,6 +553,16 @@ body.mono-numbers .price-change {
 .add-form input[type="text"]:focus {
   border-color: rgba(var(--accent-rgb), 0.4);
 }
+
+.ticker-validation-msg {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-3);
+  min-height: 16px;
+  margin-bottom: 10px;
+}
+.ticker-validation-ok { color: var(--green); }
+.ticker-validation-err { color: var(--red); }
 
 .hint {
   font-size: 12px;
@@ -600,3 +664,61 @@ button:hover {
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── MOBILE ── */
+@media (max-width: 680px) {
+  .page-header {
+    padding: 14px 16px;
+  }
+
+  .page-meta {
+    display: none;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+    padding: 16px;
+    gap: 28px;
+  }
+
+  .col-left {
+    padding-right: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 28px;
+  }
+
+  .col-right {
+    padding-left: 0;
+  }
+
+  .news-section {
+    flex: none;
+  }
+
+  .news-list {
+    flex: none;
+    overflow-y: visible;
+    max-height: none;
+  }
+
+  .page-content,
+  .page-content--full {
+    padding: 0 16px;
+    margin: 20px auto;
+  }
+
+  .qa-input-row {
+    flex-direction: column;
+  }
+
+  .qa-submit {
+    width: 100%;
+  }
+
+  .brief-card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}

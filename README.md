@@ -1,6 +1,6 @@
-**Submitted by:** Monish Bansal (mbansal)
+**Submitted by:** Monish Bansal (monishb)
 
-**Group Members:** Monish Bansal (mbansal)
+**Group Members:** Monish Bansal (monishb), Adithi Sathish (adithi)
 
 **App Description:** First Watch is a financial news dashboard that uses AI to score market sentiment on live headlines and answer user questions grounded in current news, with AI-generated daily market briefs.
 
@@ -8,8 +8,8 @@
 
 **APIs:** [Finnhub](https://finnhub.io) (market news and quotes), [Groq](https://console.groq.com) (Llama models for sentiment, briefs, and grounded Q&A)
 
-**Contact Email:** [TO BE ADDED]
+**Contact Email:** monishb@terpmail.umd.edu
 
-**Deployed App Link:** [TO BE ADDED AFTER DEPLOYMENT]
+**Deployed App Link:** https://first-watch.onrender.com/
 
 **AI Use:** 1. Claude Code, 2. Cursor

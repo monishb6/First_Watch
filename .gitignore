@@ -2,5 +2,6 @@ node_modules/
 .env
 .DS_Store
 Final Exam Project.pdf
-node_modules/
-.DS_Store
+.playwright-mcp/
+test-results/
+test-*.png

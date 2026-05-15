@@ -16,6 +16,7 @@
     <div class="header-left-row">
       <span class="wordmark">First<span class="wordmark-dot">.</span>Watch</span>
       <span class="page-meta" id="page-date"></span>
+      <span class="market-status" id="market-status" aria-live="polite"></span>
     </div>
     <nav class="header-nav">
       <a href="/watchlist">Watchlist</a>
@@ -52,8 +53,8 @@
       </div>
 
       <!-- News Feed -->
-      <div>
-        <div class="section-label">Market News</div>
+      <div class="news-section">
+        <div class="section-label" id="news-section-label">Market News</div>
         <div class="news-list" id="news-list">
           <p class="loading-msg">Loading headlines&hellip;</p>
         </div>
@@ -109,6 +110,34 @@
   </div>
 
   <script>
+    if (!localStorage.getItem('fw_onboarded')) {
+      window.location.replace('/onboarding');
+    }
+
+    function escapeHtml(str) {
+      if (str == null || str === '') return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function loadMarketStatus() {
+      fetch('/api/market-status')
+        .then(function(res) { return res.json(); })
+        .then(function(s) {
+          var el = document.getElementById('market-status');
+          if (!el) return;
+          el.textContent = s.label || '';
+          el.className = 'market-status' + (s.isRegularOpen ? ' market-status-open' : '');
+        })
+        .catch(function() {
+          var el = document.getElementById('market-status');
+          if (el) el.textContent = '';
+        });
+    }
+
     // Set current date in header
     const now = new Date();
     document.getElementById('page-date').textContent =
@@ -129,15 +158,32 @@
         return;
       }
       container.innerHTML = prices.map(function(p) {
-        const up = p.percentChange >= 0;
+        const up = (p.percentChange != null ? p.percentChange : 0) >= 0;
         const changeClass = up ? 'up' : 'down';
         const sign = up ? '+' : '';
         const arrow = up ? '&#x2191;' : '&#x2193;';
+        const pct = p.percentChange != null ? p.percentChange.toFixed(2) : '0.00';
+        const sub = [];
+        if (p.companyName) {
+          sub.push('<div class="price-meta">' + escapeHtml(p.companyName) + '</div>');
+        }
+        if (p.exchange || p.industry) {
+          sub.push('<div class="price-meta-sub">' + escapeHtml([p.exchange, p.industry].filter(Boolean).join(' · ')) + '</div>');
+        }
+        if (p.marketCapLabel) {
+          sub.push('<div class="price-meta-sub">' + escapeHtml(p.marketCapLabel) + ' mkt cap</div>');
+        }
+        if (p.nextEarningsDate) {
+          sub.push('<div class="price-earnings">Next earnings · ' + escapeHtml(p.nextEarningsDate) + '</div>');
+        }
         return '<div class="price-row">' +
-          '<div><div class="price-ticker">' + p.symbol + '</div></div>' +
+          '<div class="price-col-main">' +
+            '<div class="price-ticker">' + escapeHtml(p.symbol) + '</div>' +
+            sub.join('') +
+          '</div>' +
           '<div class="price-vals">' +
             '<div class="price-current">' + formatPrice(p.price) + '</div>' +
-            '<div class="price-change ' + changeClass + '">' + sign + (p.percentChange ? p.percentChange.toFixed(2) : '0.00') + '% ' + arrow + '</div>' +
+            '<div class="price-change ' + changeClass + '">' + sign + pct + '% ' + arrow + '</div>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -162,9 +208,20 @@
 
     function loadNews() {
       const container = document.getElementById('news-list');
+      const labelEl = document.getElementById('news-section-label');
       fetch('/api/news')
         .then(function(res) { return res.json(); })
-        .then(function(articles) {
+        .then(function(payload) {
+          if (payload.error && (!payload.items || payload.items.length === 0)) {
+            container.innerHTML = '<p class="loading-msg">' + escapeHtml(payload.error) + '</p>';
+            if (labelEl) labelEl.textContent = 'Market News';
+            return;
+          }
+          var articles = Array.isArray(payload) ? payload : (payload.items || []);
+          var feed = payload.feed;
+          if (labelEl) {
+            labelEl.textContent = feed === 'watchlist' ? 'Watchlist News' : 'Market News';
+          }
           if (!articles || articles.length === 0) {
             container.innerHTML = '<p class="loading-msg">No headlines available.</p>';
             return;
@@ -173,16 +230,15 @@
             const badgeClass = 'badge-' + (a.sentiment || 'neutral');
             return '<div class="news-item">' +
               '<div>' +
-                '<a href="' + a.url + '" target="_blank" rel="noopener" class="news-headline">' + a.headline + '</a>' +
+                '<a href="' + (a.url || '#') + '" target="_blank" rel="noopener" class="news-headline">' + escapeHtml(a.headline) + '</a>' +
                 '<div class="news-meta">' +
-                  '<span class="news-source">' + a.source + '</span>' +
+                  '<span class="news-source">' + escapeHtml(a.source || '') + '</span>' +
                   '<span class="news-time">' + timeAgo(a.datetime) + '</span>' +
                 '</div>' +
-                '<div class="news-reason">' + (a.reason || '') + '</div>' +
               '</div>' +
               '<div class="badge-col">' +
-                '<span class="badge ' + badgeClass + '">' + (a.sentiment || 'neutral') + '</span>' +
-                '<span class="confidence">' + (a.score !== undefined ? a.score.toFixed(2) : '') + '</span>' +
+                '<span class="badge ' + badgeClass + '">' + escapeHtml(a.sentiment || 'neutral') + '</span>' +
+                '<div class="conf-bar"><div class="conf-bar-fill conf-bar-' + (a.sentiment || 'neutral') + '" style="width:' + (a.score !== undefined ? (Math.abs(a.score) * 100).toFixed(0) : '0') + '%"></div></div>' +
               '</div>' +
             '</div>';
           }).join('');
@@ -194,7 +250,9 @@
 
     loadPrices();
     loadNews();
+    loadMarketStatus();
     setInterval(loadPrices, 60000);
+    setInterval(loadMarketStatus, 300000);
 
     // ── ASK FORM ──
     document.getElementById('ask-form').addEventListener('submit', function(e) {

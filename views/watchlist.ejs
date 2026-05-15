@@ -11,7 +11,7 @@
 </head>
 <body>
 
-  <div class="page-header" style="padding:20px 28px">
+  <div class="page-header">
     <div class="header-left-row">
       <a href="/" class="wordmark">First<span class="wordmark-dot">.</span>Watch</a>
     </div>
@@ -25,16 +25,19 @@
   <main class="page-content">
     <div class="section-label" style="margin-bottom:20px">Manage Watchlist</div>
 
-    <form action="/watchlist" method="POST" class="add-form">
+    <form action="/watchlist" method="POST" class="add-form" id="add-form">
       <input
         type="text"
         name="symbol"
+        id="symbol-input"
         placeholder="Enter ticker symbol (e.g. AAPL)"
         required
         autocomplete="off"
+        autocapitalize="characters"
       />
-      <button type="submit">Add</button>
+      <button type="submit" id="add-btn">Add</button>
     </form>
+    <p class="ticker-validation-msg" id="validation-msg"></p>
 
     <p class="hint">
       Standard symbols: AAPL, TSLA, MSFT, NVDA, AMZN.<br />
@@ -58,5 +61,63 @@
     </div>
   </main>
 
+  <script>
+    var validatedSymbol = null;
+
+    function setMsg(text, type) {
+      var el = document.getElementById('validation-msg');
+      el.className = 'ticker-validation-msg' + (type ? ' ticker-validation-' + type : '');
+      el.textContent = text;
+    }
+
+    document.getElementById('symbol-input').addEventListener('input', function() {
+      validatedSymbol = null;
+      setMsg('', '');
+    });
+
+    document.getElementById('symbol-input').addEventListener('blur', function() {
+      var raw = this.value.trim().toUpperCase();
+      if (!raw) return;
+      setMsg('Checking…', '');
+      fetch('/api/validate-ticker?symbol=' + encodeURIComponent(raw))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.valid) {
+            validatedSymbol = raw;
+            setMsg(raw + ' ✓', 'ok');
+          } else {
+            validatedSymbol = null;
+            setMsg('"' + raw + '" not found. Check the symbol.', 'err');
+          }
+        })
+        .catch(function() { setMsg('', ''); });
+    });
+
+    document.getElementById('add-form').addEventListener('submit', function(e) {
+      var raw = document.getElementById('symbol-input').value.trim().toUpperCase();
+      if (!raw) return;
+      if (validatedSymbol === raw) return; // already validated, let submit through
+
+      e.preventDefault();
+      var btn = document.getElementById('add-btn');
+      btn.disabled = true;
+      setMsg('Checking…', '');
+      fetch('/api/validate-ticker?symbol=' + encodeURIComponent(raw))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.valid) {
+            validatedSymbol = raw;
+            document.getElementById('add-form').submit();
+          } else {
+            setMsg('"' + raw + '" not found. Check the symbol.', 'err');
+            btn.disabled = false;
+          }
+        })
+        .catch(function() {
+          // network error — let it through
+          document.getElementById('add-form').submit();
+        });
+    });
+  </script>
 </body>
 </html>
