@@ -1,60 +1,16 @@
 const express = require("express");
 const router = express.Router();
 const { getGroq } = require("../lib/groqClient");
-const { getWatchlistQuotesEnriched, resolveHeadlineArticles } = require("../lib/finnhubData");
+const { resolveHeadlineArticles } = require("../lib/finnhubData");
+const { generateBrief } = require("../lib/generateBrief");
 const AIBrief = require("../models/AIBrief");
 const QAHistory = require("../models/QAHistory");
 
 router.post("/generate", async (req, res) => {
   try {
     const groq = getGroq();
-    if (!groq) {
-      return res.status(503).send("GROQ_API_KEY is not configured.");
-    }
-    const prices = await getWatchlistQuotesEnriched();
-
-    const { feed, articles } = await resolveHeadlineArticles();
-    const list = Array.isArray(articles) ? articles : [];
-    const top = list.slice(0, 15);
-
-    const priceContext = prices
-      .map((p) => `${p.symbol}: $${p.price} (${p.percentChange >= 0 ? "+" : ""}${p.percentChange}%)`)
-      .join(", ");
-
-    const headlineContext = top.map((a, i) => `${i + 1}. ${a.headline}`).join("\n");
-    const feedNote =
-      feed === "watchlist"
-        ? "Headlines are drawn from Finnhub company news for symbols on the user's saved watchlist (deduplicated)."
-        : "Headlines are general market news from Finnhub.";
-
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      max_tokens: 512,
-      messages: [
-        {
-          role: "user",
-          content: `You are a market analyst writing a brief for active traders. Using the prices and headlines below, write exactly 3 paragraphs:
-Paragraph 1: What is moving today and the key drivers behind it.
-Paragraph 2: Overall market sentiment direction based on the headlines.
-Paragraph 3: One specific catalyst or data point to watch in the next 24-48 hours.
-
-Write plain prose only. No headers, no bullets, no markdown. Separate paragraphs with a blank line.
-
-${feedNote}
-
-Current prices: ${priceContext || "No tickers saved."}
-
-Top headlines:
-${headlineContext || "(none available)"}`,
-        },
-      ],
-    });
-
-    const rawContent = completion.choices[0].message.content;
-    const content = (rawContent || "").trim() || "Brief unavailable — the model returned an empty response.";
-    const brief = new AIBrief({ content });
-    await brief.save();
-
+    if (!groq) return res.status(503).send("GROQ_API_KEY is not configured.");
+    await generateBrief(req.session.username);
     res.redirect("/");
   } catch (err) {
     console.error(err);
@@ -64,24 +20,19 @@ ${headlineContext || "(none available)"}`,
 
 router.post("/ask", async (req, res) => {
   try {
+    const username = req.session.username;
     const groq = getGroq();
-    if (!groq) {
-      return res.status(503).json({ answer: "GROQ_API_KEY is not configured." });
-    }
+    if (!groq) return res.status(503).json({ answer: "GROQ_API_KEY is not configured." });
 
     const question = req.body.question;
-    if (!question || !question.trim()) {
-      return res.json({ answer: "Please enter a question." });
-    }
+    if (!question || !question.trim()) return res.json({ answer: "Please enter a question." });
 
-    const { feed, articles } = await resolveHeadlineArticles();
+    const { feed, articles } = await resolveHeadlineArticles(username);
     const list = Array.isArray(articles) ? articles : [];
     const top = list.slice(0, 12);
 
     if (top.length === 0) {
-      return res.json({
-        answer: "No market headlines are available right now, so I cannot answer from the news feed.",
-      });
+      return res.json({ answer: "No market headlines are available right now, so I cannot answer from the news feed." });
     }
 
     const headlineContext = top.map((a, i) => `${i + 1}. ${a.headline}`).join("\n");
@@ -108,12 +59,8 @@ Question: ${question}`,
       ],
     });
 
-    const answer =
-      (completion.choices[0].message.content || "").trim() ||
-      "I could not generate an answer. Please try again.";
-
-    const qa = new QAHistory({ question, answer });
-    await qa.save();
+    const answer = (completion.choices[0].message.content || "").trim() || "I could not generate an answer. Please try again.";
+    await new QAHistory({ username, question, answer }).save();
 
     res.json({ answer });
   } catch (err) {
@@ -124,11 +71,12 @@ Question: ${question}`,
 
 router.get("/history", async (req, res) => {
   try {
-    const briefs = await AIBrief.find().sort({ generatedAt: -1 });
-    res.render("history", { briefs });
+    const username = req.session.username;
+    const briefs = await AIBrief.find({ username }).sort({ generatedAt: -1 });
+    res.render("history", { briefs, username });
   } catch (err) {
     console.error(err);
-    res.render("history", { briefs: [] });
+    res.render("history", { briefs: [], username: req.session.username });
   }
 });
 

@@ -1,13 +1,20 @@
 const { test, expect } = require("@playwright/test");
 
+async function login(page) {
+  await page.goto("/login");
+  await page.fill('input[name="username"]', "testuser");
+  await page.click('button[type="submit"]');
+  // lands on /onboarding for new user or / for returning user
+  await page.waitForURL((url) => !url.pathname.includes("/login"));
+}
+
 test.describe("Dashboard", () => {
   test.beforeEach(async ({ page }) => {
+    await login(page);
     await page.goto("/");
-    await page.evaluate(() => localStorage.setItem("fw_onboarded", "1"));
   });
 
   test("loads with wordmark and layout", async ({ page }) => {
-    await page.goto("/");
     await expect(page).toHaveTitle(/First Watch/i);
     await expect(page.locator(".wordmark")).toBeVisible();
     await expect(page.locator(".col-left")).toBeVisible();
@@ -15,35 +22,26 @@ test.describe("Dashboard", () => {
   });
 
   test("nav links present", async ({ page }) => {
-    await page.goto("/");
     await expect(page.locator('.header-nav a[href="/watchlist"]')).toBeVisible();
     await expect(page.locator('.header-nav a[href="/ai/history"]')).toBeVisible();
   });
 
   test("market status element renders", async ({ page }) => {
-    await page.goto("/");
-    // element exists in DOM even before fetch resolves
     await expect(page.locator("#market-status")).toBeAttached();
   });
 
   test("price table loads (empty watchlist shows add link)", async ({ page }) => {
-    await page.goto("/");
     const priceTable = page.locator("#price-table");
     await expect(priceTable).toBeVisible();
-    // wait for JS fetch to resolve (loading msg clears)
     await page.waitForFunction(() => {
       const el = document.getElementById("price-table");
       return el && !el.textContent.includes("Loading");
     }, { timeout: 10000 });
-    // empty DB → shows empty-msg with /watchlist link
     await expect(priceTable.locator('a[href="/watchlist"]')).toBeVisible();
   });
 
   test("news section renders container", async ({ page }) => {
-    await page.goto("/");
     await expect(page.locator("#news-list")).toBeVisible();
-    // without GROQ_API_KEY the fetch returns 503; the JS shows an error message
-    // either way the container is visible and not empty after fetch settles
     await page.waitForFunction(() => {
       const el = document.getElementById("news-list");
       return el && el.textContent.trim().length > 0 && !el.textContent.includes("Loading");
@@ -51,7 +49,6 @@ test.describe("Dashboard", () => {
   });
 
   test("ask form is present and interactive", async ({ page }) => {
-    await page.goto("/");
     const input = page.locator("#ask-input");
     const submit = page.locator(".qa-submit");
     await expect(input).toBeVisible();
@@ -61,14 +58,12 @@ test.describe("Dashboard", () => {
   });
 
   test("col-left bottom >= col-right bottom (columns aligned)", async ({ page }) => {
-    await page.goto("/");
     const leftBottom = await page.locator(".col-left").evaluate((el) => el.getBoundingClientRect().bottom);
     const rightBottom = await page.locator(".col-right").evaluate((el) => el.getBoundingClientRect().bottom);
     expect(Math.abs(leftBottom - rightBottom)).toBeLessThanOrEqual(2);
   });
 
   test("market brief shows 'No brief' or paragraph text", async ({ page }) => {
-    await page.goto("/");
     const brief = page.locator(".brief-card-text");
     await expect(brief).toBeVisible();
     const text = await brief.innerText();
@@ -76,12 +71,19 @@ test.describe("Dashboard", () => {
   });
 
   test("regenerate button present", async ({ page }) => {
-    await page.goto("/");
     await expect(page.locator(".brief-regen")).toBeVisible();
+  });
+
+  test("username shown in header", async ({ page }) => {
+    await expect(page.locator(".user-badge")).toContainText("@testuser");
   });
 });
 
 test.describe("Watchlist page", () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+  });
+
   test("loads and has add form", async ({ page }) => {
     await page.goto("/watchlist");
     await expect(page.locator(".add-form")).toBeVisible();
@@ -96,26 +98,41 @@ test.describe("Watchlist page", () => {
 
   test("remove a ticker", async ({ page }) => {
     await page.goto("/watchlist");
-    // ensure AAPL exists first
     const existing = page.locator(".ticker-symbol", { hasText: "AAPL" });
     if (!(await existing.isVisible())) {
       await page.locator('.add-form input[type="text"]').fill("AAPL");
       await page.locator('.add-form button[type="submit"]').click();
       await expect(existing).toBeVisible();
     }
-    // remove AAPL specifically (not just first button)
     await page.locator(".ticker-row", { hasText: "AAPL" }).locator(".remove-btn").click();
     await expect(page.locator(".ticker-symbol", { hasText: "AAPL" })).toHaveCount(0);
   });
 });
 
 test.describe("AI History page", () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+  });
+
   test("loads history page", async ({ page }) => {
     await page.goto("/ai/history");
     await expect(page.locator("body")).toBeVisible();
-    // empty DB → no cards, but page renders
     const cards = page.locator(".brief-history-card");
     const count = await cards.count();
     expect(count).toBeGreaterThanOrEqual(0);
+  });
+});
+
+test.describe("Login page", () => {
+  test("redirects unauthenticated user to login", async ({ page }) => {
+    await page.goto("/");
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test("logs in and reaches dashboard", async ({ page }) => {
+    await login(page);
+    await page.goto("/");
+    await expect(page).toHaveURL("/");
+    await expect(page.locator(".wordmark")).toBeVisible();
   });
 });

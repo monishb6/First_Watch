@@ -1,5 +1,6 @@
 require("dotenv").config();
 const express = require("express");
+const session = require("express-session");
 const mongoose = require("mongoose");
 const { getGroq } = require("./lib/groqClient");
 
@@ -10,16 +11,50 @@ app.set("view engine", "ejs");
 app.use(express.static("public"));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(session({
+  secret: process.env.SESSION_SECRET || "fw-dev-secret",
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 },
+}));
 
+function requireAuth(req, res, next) {
+  if (req.session && req.session.username) return next();
+  res.redirect("/login");
+}
+
+// ── AUTH ──
+app.get("/login", (req, res) => {
+  if (req.session.username) return res.redirect("/");
+  res.render("login", { error: null });
+});
+
+app.post("/login", async (req, res) => {
+  const username = (req.body.username || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+  if (!username) return res.render("login", { error: "Enter a username." });
+  req.session.username = username;
+  const hasTickers = await Ticker.exists({ username });
+  res.redirect(hasTickers ? "/" : "/onboarding");
+});
+
+app.post("/logout", (req, res) => {
+  req.session.destroy(() => res.redirect("/login"));
+});
+
+// ── ROUTERS ──
 const watchlistRouter = require("./routes/watchlist");
 const aiRouter = require("./routes/ai");
-app.use("/watchlist", watchlistRouter);
-app.use("/ai", aiRouter);
+app.use("/watchlist", requireAuth, watchlistRouter);
+app.use("/ai", requireAuth, aiRouter);
 
 const AIBrief = require("./models/AIBrief");
+const Ticker = require("./models/Ticker");
 const { getMarketStatusUS, getWatchlistQuotesEnriched, resolveHeadlineArticles, validateTicker } = require("./lib/finnhubData");
+const { generateBrief } = require("./lib/generateBrief");
 
-app.get("/onboarding", (req, res) => {
+const BRIEF_TTL_MS = 6 * 60 * 60 * 1000;
+
+app.get("/onboarding", requireAuth, (req, res) => {
   res.render("onboarding");
 });
 
@@ -34,19 +69,33 @@ app.get("/api/validate-ticker", async (req, res) => {
   }
 });
 
-app.get("/", async (req, res) => {
+app.get("/", requireAuth, async (req, res) => {
   try {
-    const latestBrief = await AIBrief.findOne().sort({ generatedAt: -1 });
-    res.render("index", { latestBrief });
+    const username = req.session.username;
+    let latestBrief = await AIBrief.findOne({ username }).sort({ generatedAt: -1 });
+
+    const isStale =
+      !latestBrief ||
+      Date.now() - new Date(latestBrief.generatedAt).getTime() > BRIEF_TTL_MS;
+
+    if (isStale) {
+      try {
+        latestBrief = await generateBrief(username);
+      } catch (briefErr) {
+        console.error("Auto-brief failed:", briefErr.message);
+      }
+    }
+
+    res.render("index", { latestBrief, username });
   } catch (err) {
     console.error(err);
-    res.render("index", { latestBrief: null });
+    res.render("index", { latestBrief: null, username: req.session.username });
   }
 });
 
-app.get("/api/prices", async (req, res) => {
+app.get("/api/prices", requireAuth, async (req, res) => {
   try {
-    const prices = await getWatchlistQuotesEnriched();
+    const prices = await getWatchlistQuotesEnriched(req.session.username);
     res.json(prices);
   } catch (err) {
     console.error(err);
@@ -64,9 +113,9 @@ app.get("/api/market-status", async (req, res) => {
   }
 });
 
-app.get("/api/news", async (req, res) => {
+app.get("/api/news", requireAuth, async (req, res) => {
   try {
-    const { feed, articles } = await resolveHeadlineArticles();
+    const { feed, articles } = await resolveHeadlineArticles(req.session.username);
     const list = Array.isArray(articles) ? articles : [];
     const top = list.slice(0, 25);
 

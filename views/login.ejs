@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>First Watch — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    .login-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+    }
+    .login-card {
+      max-width: 360px;
+      width: 100%;
+    }
+    .login-wordmark {
+      font-family: var(--mono);
+      font-size: 14px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text);
+      font-weight: 500;
+      margin-bottom: 36px;
+      display: block;
+    }
+    .login-wordmark span { color: var(--accent); }
+    .login-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .login-sub {
+      font-size: 13px;
+      color: var(--text-3);
+      margin-bottom: 28px;
+    }
+    .login-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      display: block;
+      margin-bottom: 8px;
+    }
+    .login-input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 14px;
+      letter-spacing: 0.06em;
+      padding: 11px 14px;
+      outline: none;
+      transition: border-color 0.15s;
+      margin-bottom: 12px;
+      box-sizing: border-box;
+    }
+    .login-input::placeholder { color: var(--text-3); font-family: var(--sans); letter-spacing: 0; }
+    .login-input:focus { border-color: rgba(var(--accent-rgb), 0.5); }
+    .login-btn {
+      width: 100%;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 12px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .login-btn:hover { opacity: 0.85; }
+    .login-error {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--red);
+      margin-bottom: 12px;
+    }
+    .login-hint {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 14px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-card">
+      <span class="login-wordmark">First<span>.</span>Watch</span>
+      <div class="login-title">Sign in</div>
+      <p class="login-sub">Enter a username to get started. No password needed.</p>
+
+      <form action="/login" method="POST">
+        <label class="login-label" for="username">Username</label>
+        <% if (error) { %>
+          <p class="login-error"><%= error %></p>
+        <% } %>
+        <input
+          class="login-input"
+          id="username"
+          name="username"
+          type="text"
+          id="username-input"
+          placeholder="e.g. trader42"
+          autocomplete="username"
+          autocapitalize="none"
+          autofocus
+          required
+        />
+        <button class="login-btn" type="submit">Enter →</button>
+      </form>
+      <p class="login-hint">Lowercase letters, numbers, and underscores only. Your watchlist and briefs are saved to your username.</p>
+    </div>
+  </div>
+  <script>
+    var names = ["trader42", "bull_run", "nvda_watcher", "sp500_guy", "market_hawk", "stockpicker", "fed_watcher", "alpha_seeker"];
+    document.getElementById("username-input").placeholder = "e.g. " + names[Math.floor(Math.random() * names.length)];
+  </script>
+</body>
+</html>

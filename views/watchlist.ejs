@@ -19,6 +19,10 @@
       <a href="/watchlist" class="active">Watchlist</a>
       <a href="/ai/history">History</a>
       <a href="/">Dashboard</a>
+      <span class="user-badge">@<%= username %></span>
+      <form action="/logout" method="POST" style="margin:0">
+        <button type="submit" class="logout-btn">Sign out</button>
+      </form>
     </nav>
   </div>
 

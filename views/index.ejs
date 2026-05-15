@@ -21,6 +21,10 @@
     <nav class="header-nav">
       <a href="/watchlist">Watchlist</a>
       <a href="/ai/history">History</a>
+      <span class="user-badge">@<%= username %></span>
+      <form action="/logout" method="POST" style="margin:0">
+        <button type="submit" class="logout-btn">Sign out</button>
+      </form>
     </nav>
   </div>
 
@@ -110,10 +114,6 @@
   </div>
 
   <script>
-    if (!localStorage.getItem('fw_onboarded')) {
-      window.location.replace('/onboarding');
-    }
-
     function escapeHtml(str) {
       if (str == null || str === '') return '';
       return String(str)
